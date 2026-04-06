@@ -1,4 +1,4 @@
-CC ?= /usr/bin/cc
+CC = gcc
 CFLAGS += -std=c2x -Wall -Wextra -Wmissing-prototypes -Wredundant-decls \
   -Wshadow -Wpointer-arith -Wno-unused-function -flto=auto \
   -fwrapv -march=native -mtune=native -O3

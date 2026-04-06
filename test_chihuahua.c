@@ -15,7 +15,7 @@
 #define DEG 1  // LaBRADOR 的扩展度，如果是简单多项式，通常为 1 (如果 test 原码是 8 则改为 8)
 
 // --- 辅助函数：读取文件内容 ---
-char* read_file_to_string(const char* filename) {
+static char* read_file_to_string(const char* filename) {
     FILE *f = fopen(filename, "r");
     if (!f) return NULL;
     fseek(f, 0, SEEK_END);
@@ -29,8 +29,8 @@ char* read_file_to_string(const char* filename) {
 }
 
 // --- 辅助函数：从 JSON 读取到 int64_t 数组 ---
-void load_poly_array(cJSON *array, int64_t *dest, size_t n) {
-    int i = 0;
+static void load_poly_array(cJSON *array, int64_t *dest, size_t n) {
+    size_t i = 0; // 把 int i 改成 size_t i
     cJSON *item = NULL;
     cJSON_ArrayForEach(item, array) {
         if (i >= n) break;
@@ -55,7 +55,8 @@ static int prepare_plover_linear(prncplstmnt *st, witness *wt, const char* json_
 
     // 1. 系统维度定义
     size_t r = 3;  // 3 个见证: z1, z2, c1
-    size_t n[3] = {PLOVER_N, PLOVER_N, PLOVER_N};
+    // size_t n[3] = {PLOVER_N, PLOVER_N, PLOVER_N};
+    size_t n[3] = {1, 1, 1};
     size_t idx[3] = {0, 1, 2}; // 约束矩阵涉及的列索引
 
     // 2. 初始化 Witness 结构
@@ -72,9 +73,10 @@ static int prepare_plover_linear(prncplstmnt *st, witness *wt, const char* json_
 
     // 将普通数组转换为 LaBRADOR 内部的多项式格式
     // （如果底层 wt->s 是 polz 类型，请使用 polzvec_fromint64vec）
-    polxvec_fromint64vec(wt->s[0], 1, DEG, raw_z1);
-    polxvec_fromint64vec(wt->s[1], 1, DEG, raw_z2);
-    polxvec_fromint64vec(wt->s[2], 1, DEG, raw_c1);
+    // 将 polxvec_fromint64vec 改为 polyvec_fromint64vec
+    polyvec_fromint64vec(wt->s[0], 1, DEG, raw_z1);
+    polyvec_fromint64vec(wt->s[1], 1, DEG, raw_z2);
+    polyvec_fromint64vec(wt->s[2], 1, DEG, raw_c1);
 
     // --- 4. 初始化并填充公开声明 ---
     init_prncplstmnt_raw(st, r, n, plover_sq_beta, 1, 0); // 1 代表 1 个约束方程
