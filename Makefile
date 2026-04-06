@@ -6,10 +6,10 @@ RM = /bin/rm
 
 SOURCES = pack.c greyhound.c dachshund.c chihuahua.c labrador.c \
   data.c jlproj.c polx.c poly.c polz.c sparsemat.c ntt.S invntt.S \
-  aesctr.c fips202.c randombytes.c cpucycles.c
+  aesctr.c fips202.c randombytes.c cpucycles.c cJSON.c
 HEADERS = pack.h greyhound.h dachshund.h chihuahua.h labrador.h \
   data.h jlproj.h polx.h poly.h polz.h sparsemat.h fq.inc shuffle.inc \
-  aesctr.h fips202.h randombytes.h malloc.h cpucycles.h
+  aesctr.h fips202.h randombytes.h malloc.h cpucycles.h cJSON.h
 
 .PHONY: all
 
@@ -42,7 +42,7 @@ test_jlproj: test_jlproj.c data.c data.h jlproj.c jlproj.h polx.c polx.h poly.c 
 	$(CC) $(CFLAGS) test_jlproj.c jlproj.c data.c polx.c poly.c polz.c ntt.S invntt.S aesctr.c fips202.c randombytes.c cpucycles.c -o test_jlproj -lm
 
 test_chihuahua: test_chihuahua.c $(SOURCES) $(HEADERS)
-	$(CC) $(CFLAGS) test_chihuahua.c $(SOURCES) -o $@ -lm
+	$(CC) $(CFLAGS) test_chihuahua.c $(SOURCES) -o $@ -lm -lcrypto
 
 test_dachshund: test_dachshund.c $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) test_dachshund.c $(SOURCES) -o $@ -lm
