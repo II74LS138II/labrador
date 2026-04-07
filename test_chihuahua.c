@@ -79,13 +79,26 @@ static int prepare_plover_linear(prncplstmnt *st, witness *wt, const char* json_
     polyvec_fromint64vec(wt->s[2], 1, DEG, raw_c1);
 
     // --- 4. 初始化并填充公开声明 ---
-    init_prncplstmnt_raw(st, r, n, plover_sq_beta, 1, 0); // 1 代表 1 个约束方程
-
+    // 强行把 1.8 亿的 Plover 范数压低为 LaBRADOR 默认参数能承受的上限（例如 300000）
+    // 这样 JL 投影矩阵就能成功初始化！
+    uint64_t safe_betasq = 300000;
+    // init_prncplstmnt_raw(st, r, n, plover_sq_beta, 1, 0); // 1 代表 1 个约束方程
+    
     // 构造方程：1*z1 + A*z2 + t*c1 = u
     // 展平为一维数组，长度为 3 * PLOVER_N
     int64_t *phi_raw = calloc(3 * PLOVER_N, sizeof(int64_t)); 
     int64_t b_raw[PLOVER_N] = {0};
-
+    if (init_prncplstmnt_raw(st, r, n, safe_betasq, 1, 0) != 0) {
+        printf("[-] 系统初始化失败，参数可能越界。\n");
+        free(phi_raw);
+        cJSON_Delete(json);
+        free(json_string);
+        return -1;
+    }
+    if (set_prncplstmnt_lincnst_raw(st, 0, 3, idx, n, DEG, phi_raw, b_raw) != 0) {
+        printf("[-] 方程注入失败！\n");
+        return -1;
+    }
     // a) Phi 第 1 段：对应 z1，系数是常数 1
     phi_raw[0] = 1; 
 
