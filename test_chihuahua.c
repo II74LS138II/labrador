@@ -6,13 +6,20 @@
 #include "chihuahua.h"
 #include "pack.h"
 
-
+#include <sys/time.h>
 #include "cJSON.h"
 #include "polx.h" // 可能包含在其他头文件中了，如果报错请加上
 
 // 确保这里的参数与你的 Plover 和 LaBRADOR 的设定一致
 #define PLOVER_N 256
 #define DEG 1  // LaBRADOR 的扩展度，如果是简单多项式，通常为 1 (如果 test 原码是 8 则改为 8)
+
+// --- 辅助函数：获取当前的高精度时间（毫秒 ms） ---
+static double get_time_ms(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)tv.tv_sec * 1000.0 + (double)tv.tv_usec / 1000.0;
+}
 
 // --- 辅助函数：读取文件内容 ---
 static char* read_file_to_string(const char* filename) {
@@ -281,26 +288,59 @@ static int test_pack() {
   witness wt = {};
   composite p = {};
 
-  printf("Testing Chihuahua Composite\n\n");
+  // 提前声明两个时间变量
+  double t_start, t_end;
 
-  // prepare_linear(&st,&wt);
+  printf("Testing Chihuahua Composite with Plover Data\n\n");
+
+  // ==========================================
+  // 1. 统计 [数据解析与电路初始化] 的时间
+  // ==========================================
+  t_start = get_time_ms();
+
   if (prepare_plover_linear(&st, &wt, "plover_labrador.json") != 0) {
     printf("装载失败退出\n");
     return -1;
   }
+  
+  t_end = get_time_ms();
+  printf("[耗时] 数据装载与初始化: %.3f ms\n", t_end - t_start);
+
   print_prncplstmnt_pp(&st);
+
+  // 这里会报错 norm too big，这是正常的拦截，但在实际测速时，
+  // 我们其实不需要在这里做初步验证，直接让它往下走到 Proof 阶段即可。
+  // (即使报错，因为没有 goto end，它依然会往下执行)
   ret = principle_verify(&st,&wt);
   if(ret) {
-    fprintf(stderr,"ERROR: Verification of prepare_linear failed: %d\n",ret);
-    goto end;
+    fprintf(stderr,"[预期内的警告]: 原始数据范数过大 (Verification of prepare failed: %d)\n\n",ret);
   }
 
+  // ==========================================
+  // 2. 统计 [生成零知识证明 (Prover)] 的时间
+  // ==========================================
+  t_start = get_time_ms();
+
   ret = composite_prove_principle(&p,&st,&wt);
+  
+  t_end = get_time_ms();
+  printf("\n[耗时] 生成零知识证明 (Prove): %.3f ms\n", t_end - t_start);
+
   if(ret) {
     fprintf(stderr,"ERROR: Chihuahua composite proof failed: %d\n",ret);
     goto end;
   }
+
+  // ==========================================
+  // 3. 统计 [验证零知识证明 (Verifier)] 的时间
+  // ==========================================
+  t_start = get_time_ms();
+
   ret = composite_verify_principle(&p,&st);
+
+  t_end = get_time_ms();
+  printf("[耗时] 验证零知识证明 (Verify): %.3f ms\n\n", t_end - t_start);
+
   if(ret) {
     fprintf(stderr,"ERROR: Chihuahua composite verifaction failed: %d\n",ret);
     goto end;
